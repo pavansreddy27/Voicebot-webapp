@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalized Voice Bot Demo</title>
+    <style>
+        /* Classic, Professional Design */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background-color: #f0f2f5;
+        }
+        .container { 
+            background: #ffffff; 
+            padding: 40px; 
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            width: 90%; 
+            max-width: 550px;
+            text-align: center; 
+        }
+        h1 { 
+            color: #333333; 
+            margin-bottom: 20px; /* Reduced margin */
+            font-weight: 600;
+        }
+        p {
+            color: #555555;
+            margin-bottom: 20px;
+        }
+        
+        /* Input and Button Group */
+        .input-group { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 25px; 
+            margin-bottom: 20px; /* Added margin below input for separation */
+        }
+        #text-input { 
+            flex-grow: 1; 
+            padding: 12px; 
+            border: 1px solid #dcdcdc; 
+            border-radius: 6px; 
+            font-size: 1em; 
+            transition: border-color 0.3s;
+        }
+        #text-input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        /* Base Button Styles */
+        button {
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 6px; 
+            font-size: 1em; 
+            font-weight: 500;
+            cursor: pointer; 
+            transition: background-color 0.2s, box-shadow 0.2s; 
+        }
+
+        /* Send Button */
+        #send-btn { 
+            background-color: #007bff; 
+            color: white; 
+        }
+        #send-btn:hover { 
+            background-color: #0056b3; 
+        }
+
+        /* Microphone Button */
+        #microphone-btn { 
+            background-color: #28a745; 
+            color: white; 
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+        #microphone-btn:hover { 
+            background-color: #1e7e34; 
+        }
+        
+        /* Stop Recording Button (Mic) */
+        #stop-mic-btn { 
+            background-color: #dc3545; 
+            color: white; 
+            display: none;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+        }
+        #stop-mic-btn:hover { 
+            background-color: #c82333; 
+        }
+        
+        /* Stop Speaking Button (TTS) */
+        #stop-tts-btn {
+            background-color: #ffc107; 
+            color: #333;
+            display: none;
+            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.5);
+            font-weight: 600;
+        }
+        #stop-tts-btn:hover {
+            background-color: #e0a800;
+        }
+
+        button:disabled { 
+            background-color: #e9ecef !important; 
+            color: #6c757d !important; 
+            cursor: not-allowed !important; 
+            box-shadow: none !important;
+        }
+        
+        /* Status and Transcript Display */
+        #status-display { 
+            margin-top: 10px; /* Reduced margin */
+            font-size: 1.1em; 
+            color: #333333; 
+            min-height: 30px; 
+            font-weight: 600;
+        }
+        #user-transcript { 
+            margin-top: 5px; 
+            font-style: italic; 
+            color: #777777; 
+            font-size: 0.95em;
+            margin-bottom: 20px;
+        }
+        
+        /* Conversation History Styles (NEW) */
+        #history-log {
+            text-align: left;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa; /* Very light grey background for log */
+            border-radius: 6px;
+            max-height: 300px; /* Limit height */
+            overflow-y: auto; /* Enable scrolling */
+            border: 1px solid #e9ecef;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .history-entry {
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #e9ecef;
+        }
+        .history-entry:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .user-message {
+            font-weight: 600;
+            color: #007bff; /* Blue for user question */
+            margin-bottom: 3px;
+            font-size: 0.9em;
+        }
+        .ai-reply {
+            color: #333333; /* Darker text for AI response */
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pavan S Reddy Interview Bot 🤖</h1>
+        
+        <div class="input-group">
+            <input type="text" id="text-input" placeholder="Type your question here...">
+            <button id="send-btn">Send</button>
+            <button id="microphone-btn">Mic</button>
+            <button id="stop-mic-btn">Stop Recording</button> 
+            <button id="stop-tts-btn">Stop Talking</button> 
+        </div>
+        
+        <div id="status-display">Type a message or click 'Mic' to begin.</div>
+        <div id="user-transcript"></div>
+
+        <div id="history-log">
+            <p style="text-align: center; color: #999; font-style: italic; margin: 0;">Conversation history will appear here.</p>
+        </div>
+    </div>
+
+    <script>
+        const micBtn = document.getElementById('microphone-btn');
+        const stopMicBtn = document.getElementById('stop-mic-btn');
+        const stopTtsBtn = document.getElementById('stop-tts-btn');
+        const sendBtn = document.getElementById('send-btn');
+        const textInput = document.getElementById('text-input');
+        const statusDisplay = document.getElementById('status-display');
+        const userTranscript = document.getElementById('user-transcript');
+        const historyLog = document.getElementById('history-log'); // NEW
+        const synth = window.speechSynthesis;
+
+        // Function to disable/enable all input methods during processing
+        function setControlsDisabled(disabled) {
+            sendBtn.disabled = disabled;
+            textInput.disabled = disabled;
+            micBtn.disabled = disabled;
+        }
+
+        // Function to reset the mic buttons (Show Mic, Hide Stop Recording)
+        const resetMicButtons = () => {
+            micBtn.style.display = 'block'; 
+            stopMicBtn.style.display = 'none'; 
+        }
+        
+        // Function to reset TTS button (Hide Stop Talking)
+        const resetTtsButton = () => {
+            stopTtsBtn.style.display = 'none';
+        }
+
+        // NEW: Function to add conversation to history
+        const addToHistory = (userMsg, aiMsg) => {
+            const entry = document.createElement('div');
+            entry.className = 'history-entry';
+            
+            // Remove the initial placeholder text if it exists
+            if (historyLog.querySelector('p')) {
+                historyLog.innerHTML = ''; 
+            }
+            
+            entry.innerHTML = `
+                <div class="user-message">Q: ${userMsg}</div>
+                <div class="ai-reply">A: ${aiMsg}</div>
+            `;
+            historyLog.prepend(entry); // Prepend to show newest at the top
+        };
+
+
+        // --- Text Send Button Handler ---
+        sendBtn.onclick = () => {
+            const message = textInput.value.trim();
+            if (message) {
+                userTranscript.textContent = "You typed: \"" + message + "\"";
+                statusDisplay.textContent = "Sending your question to the AI...";
+                setControlsDisabled(true);
+                sendToBackend(message);
+                textInput.value = '';
+            }
+        };
+
+        // --- Web Speech API (Microphone) Logic ---
+        if (!('webkitSpeechRecognition' in window)) {
+             statusDisplay.textContent = "Error: Your browser does not support the Web Speech API. Text input is still available.";
+             micBtn.style.display = 'none';
+        } else {
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = false; 
+            recognition.lang = 'en-US';
+            recognition.interimResults = false; 
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                statusDisplay.textContent = "Listening... Speak now.";
+                userTranscript.textContent = "";
+                setControlsDisabled(true);
+                micBtn.style.display = 'none'; 
+                stopMicBtn.style.display = 'block'; 
+            };
+            
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                userTranscript.textContent = "You said: \"" + speechResult + "\"";
+                statusDisplay.textContent = "Sending your question to the AI...";
+                resetMicButtons(); 
+                sendToBackend(speechResult);
+            };
+            
+            recognition.onerror = (event) => {
+                statusDisplay.textContent = 'Error during recognition: ' + event.error;
+                setControlsDisabled(false);
+                resetMicButtons();
+            };
+
+            recognition.onend = () => {
+                if (!statusDisplay.textContent.includes("Sending") && statusDisplay.textContent.includes("Listening")) {
+                     statusDisplay.textContent = "No speech detected. Click 'Mic' to retry or type a message.";
+                     setControlsDisabled(false);
+                }
+                resetMicButtons();
+            };
+
+            micBtn.onclick = () => {
+                recognition.start();
+            };
+
+            // --- Stop Mic Button Handler ---
+            stopMicBtn.onclick = () => {
+                recognition.stop();
+                statusDisplay.textContent = "Recording stopped by user. Click 'Mic' to try again.";
+                setControlsDisabled(false);
+                resetMicButtons();
+            }
+        }
+        
+        // --- Backend Communication Logic ---
+        async function sendToBackend(userMessage) {
+            let aiReply = "Error: Could not get a response from the server.";
+            
+            try {
+                const response = await fetch('/api/chat', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMessage })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                aiReply = data.reply;
+                
+                statusDisplay.textContent = "AI Reply: " + aiReply;
+                
+                // NEW: Add the conversation to the history log
+                addToHistory(userMessage, aiReply);
+                
+                speakResponse(aiReply);
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                statusDisplay.textContent = "An error occurred. Check the console and ensure your backend server is running.";
+                setControlsDisabled(false);
+                // The error message is handled by the initial aiReply definition if the fetch fails
+                addToHistory(userMessage, aiReply); 
+                if ('webkitSpeechRecognition' in window) {
+                    resetMicButtons();
+                }
+            }
+        }
+
+        // --- Text-to-Speech (TTS) Logic ---
+        function speakResponse(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Set callbacks
+            utterance.onstart = () => { 
+                setControlsDisabled(true); 
+                stopTtsBtn.style.display = 'block';
+            };
+            utterance.onend = () => { 
+                setControlsDisabled(false); 
+                resetTtsButton();
+            };
+            
+            synth.speak(utterance);
+        }
+        
+        // --- Stop TTS Button Handler ---
+        stopTtsBtn.onclick = () => {
+            synth.cancel();
+            setControlsDisabled(false);
+            resetTtsButton();
+            statusDisplay.textContent = "Speech interrupted. Ready for next question.";
+        }
+
+    </script>
+</body>
+</html>
